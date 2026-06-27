@@ -391,7 +391,6 @@ export async function seedInitialData(userId: string): Promise<void> {
   }
 
   // 2. Seed Focus Sessions (Past 14 days)
-  const activityTypes = ['planning', 'teaching', 'grading', 'focus_session'] as const;
   const now = new Date();
 
   for (let i = 0; i < 14; i++) {
