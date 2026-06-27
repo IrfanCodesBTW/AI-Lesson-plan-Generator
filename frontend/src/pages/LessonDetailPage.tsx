@@ -6,6 +6,8 @@ import {
   getApiError,
   generateLesson,
   deleteLesson,
+  downloadLessonCsv,
+  approveLesson,
   Lesson,
 } from '../lib/api';
 import { StatusBadge } from '../components/ui/StatusBadge';
@@ -45,6 +47,30 @@ export function LessonDetailPage() {
       setError(getApiError(err).message);
     } finally {
       setDownloading(false);
+    }
+  }
+
+  async function handleCsv() {
+    if (!id || !lesson) return;
+    setDownloading(true);
+    setError(null);
+    try {
+      const filename = `lesson-${lesson.theme.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${lesson.createdAt.slice(0, 10)}.csv`;
+      await downloadLessonCsv(id, filename);
+    } catch (err) {
+      setError(getApiError(err).message);
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  async function handleApprove(status: 'approved' | 'rejected') {
+    if (!id || !lesson) return;
+    try {
+      const updated = await approveLesson(id, status);
+      setLesson(updated);
+    } catch (err) {
+      setError(getApiError(err).message);
     }
   }
 
@@ -136,6 +162,24 @@ export function LessonDetailPage() {
 
         {/* Action Panel */}
         <div className="flex flex-wrap items-center gap-2">
+          {lesson.approvalStatus !== 'approved' && (
+            <button
+              type="button"
+              className="btn-primary py-2 px-4 flex items-center gap-1.5 h-11 text-xs bg-green-600 hover:bg-green-700 border-green-800 text-white"
+              onClick={() => handleApprove('approved')}
+            >
+              Approve
+            </button>
+          )}
+          {lesson.approvalStatus !== 'rejected' && (
+            <button
+              type="button"
+              className="btn-secondary py-2 px-4 flex items-center gap-1.5 h-11 text-xs"
+              onClick={() => handleApprove('rejected')}
+            >
+              Reject
+            </button>
+          )}
           <button
             type="button"
             className="btn-secondary py-2 px-4 flex items-center gap-1.5 h-11 text-xs"
@@ -148,11 +192,20 @@ export function LessonDetailPage() {
           <button
             type="button"
             className="btn-primary py-2 px-4 flex items-center gap-1.5 h-11 text-xs"
+            onClick={handleCsv}
+            disabled={downloading}
+          >
+            <FileDown className="h-4 w-4 stroke-[2.5]" />
+            CSV
+          </button>
+          <button
+            type="button"
+            className="btn-primary py-2 px-4 flex items-center gap-1.5 h-11 text-xs"
             onClick={handlePdf}
             disabled={downloading}
           >
             <FileDown className="h-4 w-4 stroke-[2.5]" />
-            {downloading ? 'Preparing…' : 'Export PDF'}
+            PDF
           </button>
           <button
             type="button"
@@ -161,7 +214,7 @@ export function LessonDetailPage() {
             disabled={deleting}
           >
             <Trash2 className="h-4 w-4 stroke-[2.5]" />
-            {deleting ? 'Deleting…' : 'Delete'}
+            Delete
           </button>
         </div>
       </div>

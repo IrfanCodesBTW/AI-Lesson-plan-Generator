@@ -7,6 +7,9 @@ import { DashboardPage } from './pages/DashboardPage';
 import { LessonDetailPage } from './pages/LessonDetailPage';
 import { RequireAuth } from './components/RequireAuth';
 import { SidebarLayout } from './components/SidebarLayout';
+import { CurriculumPlannerPage } from './pages/CurriculumPlannerPage';
+import { MaterialChecklistPage } from './pages/MaterialChecklistPage';
+import { ManagementPage } from './pages/ManagementPage';
 
 function App() {
   return (
@@ -24,6 +27,36 @@ function App() {
           <RequireAuth>
             <SidebarLayout>
               <DashboardPage />
+            </SidebarLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/curriculum"
+        element={
+          <RequireAuth>
+            <SidebarLayout>
+              <CurriculumPlannerPage />
+            </SidebarLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/materials"
+        element={
+          <RequireAuth>
+            <SidebarLayout>
+              <MaterialChecklistPage />
+            </SidebarLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/management"
+        element={
+          <RequireAuth>
+            <SidebarLayout>
+              <ManagementPage />
             </SidebarLayout>
           </RequireAuth>
         }

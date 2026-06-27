@@ -20,3 +20,37 @@ exportRouter.get(
     }
   },
 );
+
+exportRouter.get(
+  '/csv/:id',
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.userId) throw new UnauthorizedError();
+      const id = String(req.params.id);
+      const lesson = await getLesson(req.userId, id);
+
+      const { objective, activity, rhyme, worksheet, materials } = lesson.lessonContent;
+      const csvContent = [
+        ['Age Group', 'Theme', 'Objective', 'Activity', 'Rhyme', 'Worksheet', 'Materials'],
+        [
+          lesson.ageGroup,
+          lesson.theme,
+          `"${(objective || '').replace(/"/g, '""')}"`,
+          `"${(activity || '').replace(/"/g, '""')}"`,
+          `"${(rhyme || '').replace(/"/g, '""')}"`,
+          `"${(worksheet || '').replace(/"/g, '""')}"`,
+          `"${(materials || []).join(', ')}"`,
+        ],
+      ]
+        .map((e) => e.join(','))
+        .join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=lesson-${id}.csv`);
+      res.send(csvContent);
+    } catch (err) {
+      next(err);
+    }
+  },
+);

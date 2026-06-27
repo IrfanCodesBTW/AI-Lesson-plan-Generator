@@ -44,6 +44,9 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       icon: Building,
       path: '/dashboard?tab=operations',
     },
+    { id: 'curriculum', label: 'Curriculum', icon: BookOpen, path: '/curriculum' },
+    { id: 'materials', label: 'Materials', icon: FolderHeart, path: '/materials' },
+    { id: 'management', label: 'Management', icon: Settings, path: '/management' },
   ];
 
   const toolNavItems = [
@@ -64,6 +67,9 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
 
   const isActive = (itemId: string) => {
     if (isLessonDetailPage) return itemId === 'library';
+    if (['curriculum', 'materials', 'management'].includes(itemId)) {
+      return location.pathname === `/${itemId}`;
+    }
     return currentTab === itemId && location.pathname === '/dashboard';
   };
 

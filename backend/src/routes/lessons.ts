@@ -68,3 +68,30 @@ lessonsRouter.post('/generate', async (req: Request, res: Response, next: NextFu
     next(err);
   }
 });
+
+import { z } from 'zod';
+import { query } from '../lib/db';
+
+const approveSchema = z.object({
+  status: z.enum(['pending', 'approved', 'rejected']),
+});
+
+lessonsRouter.patch('/:id/approve', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.userId) throw new UnauthorizedError();
+    const id = String(req.params.id);
+    const { status } = parseOrThrow(approveSchema, req.body, 'body');
+
+    // First, verify the user owns the lesson
+    await getLesson(req.userId, id);
+
+    const result = await query(
+      'UPDATE lesson_plans SET approval_status = $1 WHERE id = $2 AND user_id = $3 RETURNING *',
+      [status, id, req.userId],
+    );
+
+    res.json({ lesson: result[0] });
+  } catch (err) {
+    next(err);
+  }
+});

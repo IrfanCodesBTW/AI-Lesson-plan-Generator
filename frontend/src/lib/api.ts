@@ -89,6 +89,7 @@ export interface Lesson {
   theme: string;
   lessonContent: LessonContent;
   source: 'gemini' | 'fallback';
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 }
 
@@ -354,4 +355,89 @@ export async function createRoutine(input: {
 }): Promise<DaycareRoutine> {
   const res = await api.post('/api/operations/routines', input);
   return res.data.routine;
+}
+
+// ── New Features API Functions ─────────────────────────────────────────
+
+export async function approveLesson(id: string, status: 'approved' | 'rejected'): Promise<Lesson> {
+  const res = await api.patch(`/api/lessons/${id}/approve`, { status });
+  return res.data.lesson as Lesson;
+}
+
+export async function downloadLessonCsv(id: string, suggestedFilename: string): Promise<void> {
+  const res = await api.get(`/api/export/csv/${id}`, { responseType: 'blob' });
+  const blob = new Blob([res.data], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = suggestedFilename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function fetchCurriculumMapping(): Promise<any> {
+  const res = await api.get('/api/curriculum/mapping');
+  return res.data.mapping;
+}
+
+export async function createCurriculum(input: {
+  theme: string;
+  week_number: number;
+  details: string;
+}): Promise<any> {
+  const res = await api.post('/api/curriculum', input);
+  return res.data.activity;
+}
+
+export async function fetchMaterialRequirements(theme?: string): Promise<string[]> {
+  const res = await api.get('/api/materials/requirements', { params: { theme } });
+  return res.data.materials;
+}
+
+export async function sendCommunication(input: {
+  parentId: string;
+  message: string;
+  type: 'whatsapp' | 'email';
+}): Promise<any> {
+  const res = await api.post('/api/communications/send', input);
+  return res.data;
+}
+
+export async function fetchParents(): Promise<any[]> {
+  const res = await api.get('/api/management/parents');
+  return res.data.parents;
+}
+
+export async function createParent(input: {
+  name: string;
+  email?: string;
+  phone?: string;
+}): Promise<any> {
+  const res = await api.post('/api/management/parents', input);
+  return res.data.parent;
+}
+
+export async function fetchChildren(): Promise<any[]> {
+  const res = await api.get('/api/management/children');
+  return res.data.children;
+}
+
+export async function createChild(input: {
+  name: string;
+  dob: string;
+  parent_id: string;
+  classroom_id?: string;
+}): Promise<any> {
+  const res = await api.post('/api/management/children', input);
+  return res.data.child;
+}
+
+export async function fetchClassrooms(): Promise<any[]> {
+  const res = await api.get('/api/management/classrooms');
+  return res.data.classrooms;
+}
+
+export async function createClassroom(input: { name: string; capacity: number }): Promise<any> {
+  const res = await api.post('/api/management/classrooms', input);
+  return res.data.classroom;
 }

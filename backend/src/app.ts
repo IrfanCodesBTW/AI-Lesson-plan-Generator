@@ -9,6 +9,10 @@ import { lessonsRouter } from './routes/lessons';
 import { exportRouter } from './routes/export';
 import { analyticsRouter } from './routes/analytics';
 import { operationsRouter } from './routes/operations';
+import { curriculumRouter } from './routes/curriculum';
+import { materialsRouter } from './routes/materials';
+import { communicationsRouter } from './routes/communications';
+import { managementRouter } from './routes/management';
 import { errorHandler, notFoundHandler } from './middleware/error';
 import { getLogger } from './lib/logger';
 
@@ -46,6 +50,10 @@ export function createApp(): Application {
   app.use('/api/export', exportRouter);
   app.use('/api/analytics', analyticsRouter);
   app.use('/api/operations', operationsRouter);
+  app.use('/api/curriculum', curriculumRouter);
+  app.use('/api/materials', materialsRouter);
+  app.use('/api/communications', communicationsRouter);
+  app.use('/api/management', managementRouter);
 
   app.get('/', (_req, res) => {
     res.json({ service: 'ai-lesson-generator-backend', docs: '/health' });
