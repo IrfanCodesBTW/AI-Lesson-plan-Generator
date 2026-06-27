@@ -7,6 +7,8 @@ import { healthRouter } from './routes/health';
 import { authRouter } from './routes/auth';
 import { lessonsRouter } from './routes/lessons';
 import { exportRouter } from './routes/export';
+import { analyticsRouter } from './routes/analytics';
+import { operationsRouter } from './routes/operations';
 import { errorHandler, notFoundHandler } from './middleware/error';
 import { getLogger } from './lib/logger';
 
@@ -42,6 +44,8 @@ export function createApp(): Application {
   app.use('/api/auth', authLimiter, authRouter);
   app.use('/api/lessons', lessonsRouter);
   app.use('/api/export', exportRouter);
+  app.use('/api/analytics', analyticsRouter);
+  app.use('/api/operations', operationsRouter);
 
   app.get('/', (_req, res) => {
     res.json({ service: 'ai-lesson-generator-backend', docs: '/health' });

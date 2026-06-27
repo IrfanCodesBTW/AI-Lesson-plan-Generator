@@ -185,3 +185,173 @@ export async function downloadLessonPdf(id: string, suggestedFilename: string): 
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// ── Analytics Types ──────────────────────────────────────────────────
+
+export interface WeeklyTrend {
+  day: string;
+  hours: number;
+}
+
+export interface DashboardKPIs {
+  attendanceRate: number;
+  engagementRate: number;
+  completionRate: number;
+  totalTasks: number;
+  completedTasks: number;
+  geminiLessonsCount: number;
+  fallbackLessonsCount: number;
+  totalLessonsCount: number;
+}
+
+export interface FocusHoursSummary {
+  totalHours: number;
+  percentageChange: number;
+}
+
+export interface DashboardMetrics {
+  trends: WeeklyTrend[];
+  summary: FocusHoursSummary;
+  kpis: DashboardKPIs;
+}
+
+export interface AIInsightItem {
+  id: string;
+  userId: string;
+  title: string;
+  description: string;
+  type: 'classroom_engagement' | 'learning_gaps' | 'resource_suggestions';
+  createdAt: string;
+}
+
+export interface TaskItem {
+  id: string;
+  userId: string;
+  title: string;
+  completed: boolean;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+// ── Analytics API Functions ──────────────────────────────────────────
+
+export async function fetchDashboardData(
+  range: string,
+  customStart?: string,
+  customEnd?: string,
+): Promise<DashboardMetrics> {
+  const params: Record<string, string> = { range };
+  if (customStart) params.customStart = customStart;
+  if (customEnd) params.customEnd = customEnd;
+  const res = await api.get('/api/analytics/dashboard', { params });
+  return res.data;
+}
+
+export async function fetchInsights(): Promise<AIInsightItem[]> {
+  const res = await api.get('/api/analytics/insights');
+  return res.data.insights;
+}
+
+export async function triggerInsightsRegenerate(): Promise<AIInsightItem[]> {
+  const res = await api.post('/api/analytics/insights/regenerate');
+  return res.data.insights;
+}
+
+export async function fetchTasksList(): Promise<TaskItem[]> {
+  const res = await api.get('/api/analytics/tasks');
+  return res.data.tasks;
+}
+
+export async function createNewTask(title: string): Promise<TaskItem> {
+  const res = await api.post('/api/analytics/tasks', { title });
+  return res.data.task;
+}
+
+export async function updateTaskStatus(id: string, completed: boolean): Promise<TaskItem> {
+  const res = await api.put(`/api/analytics/tasks/${id}`, { completed });
+  return res.data.task;
+}
+
+export async function deleteTaskItem(id: string): Promise<void> {
+  await api.delete(`/api/analytics/tasks/${id}`);
+}
+
+export async function logFocusHours(
+  hours: number,
+  activityType: string,
+  date?: string,
+): Promise<void> {
+  await api.post('/api/analytics/focus-sessions', { hours, activityType, date });
+}
+
+export async function logStudentPerformance(input: {
+  studentName: string;
+  activityName: string;
+  score?: number;
+  attendanceStatus?: string;
+  engagementScore?: number;
+  date?: string;
+}): Promise<void> {
+  await api.post('/api/analytics/student-metrics', input);
+}
+
+// ── Operations Types ─────────────────────────────────────────────────
+
+export interface ParentEnquiry {
+  id: string;
+  userId: string;
+  parentName: string;
+  childName: string;
+  childAge: number;
+  status: 'pending' | 'contacted' | 'admitted' | 'rejected';
+  remarks: string | null;
+  createdAt: string;
+}
+
+export interface DaycareRoutine {
+  id: string;
+  userId: string;
+  childName: string;
+  routineType: 'meal' | 'nap' | 'diaper' | 'activity';
+  detail: string;
+  createdAt: string;
+}
+
+// ── Operations API Functions ─────────────────────────────────────────
+
+export async function fetchEnquiries(): Promise<ParentEnquiry[]> {
+  const res = await api.get('/api/operations/enquiries');
+  return res.data.enquiries;
+}
+
+export async function createEnquiry(input: {
+  parentName: string;
+  childName: string;
+  childAge: number;
+  remarks?: string;
+}): Promise<ParentEnquiry> {
+  const res = await api.post('/api/operations/enquiries', input);
+  return res.data.enquiry;
+}
+
+export async function updateEnquiryStatus(
+  id: string,
+  status: 'pending' | 'contacted' | 'admitted' | 'rejected',
+): Promise<ParentEnquiry> {
+  const res = await api.put(`/api/operations/enquiries/${id}`, { status });
+  return res.data.enquiry;
+}
+
+export async function fetchRoutines(): Promise<DaycareRoutine[]> {
+  const res = await api.get('/api/operations/routines');
+  return res.data.routines;
+}
+
+export async function createRoutine(input: {
+  childName: string;
+  routineType: 'meal' | 'nap' | 'diaper' | 'activity';
+  detail: string;
+}): Promise<DaycareRoutine> {
+  const res = await api.post('/api/operations/routines', input);
+  return res.data.routine;
+}

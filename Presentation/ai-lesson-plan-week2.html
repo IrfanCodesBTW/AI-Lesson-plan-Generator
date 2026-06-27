@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="slides-format" content="viewport">
+    <title>AI Lesson Plan Generator — Week 2 Review</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300..700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <style type="text/tailwindcss">
+        @theme {
+            --color-bg: #faf8f5;
+            --color-bg-deep: #f0ece5;
+            --color-surface: #ffffff;
+            --color-text: #152D47;
+            --color-text-secondary: #3a5068;
+            --color-text-muted: #6b8099;
+            --color-accent-1: #2150FE;
+            --color-accent-2: #4f8aff;
+            --color-accent-3: #e85d04;
+            --color-glass-bg: rgba(255,255,255,0.88);
+            --color-glass-border: rgba(21,45,71,0.09);
+            --color-vignette: rgba(0,0,0,0.05);
+            --font-display: 'DM Serif Display', Georgia, serif;
+            --font-body: 'DM Sans', Arial, sans-serif;
+        }
+    </style>
+
+    <style>
+        :root {
+            --color-bg: #faf8f5;
+            --color-text: #152D47;
+            --glow-color-rgb: 33,80,254;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { background: var(--color-bg); margin: 0; }
+        body { font-family: 'DM Sans', Arial, sans-serif; color: var(--color-text); overflow: hidden; height: 100vh; width: 100vw; }
+        .deck { width: 100vw; height: 100vh; position: relative; }
+        .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--color-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transform: scale(0.95); transition: opacity 0.7s ease, transform 0.7s ease; pointer-events: none; overflow: hidden; }
+        .slide.active { opacity: 1; transform: scale(1); pointer-events: all; }
+        .slide > .content { position: relative; z-index: 2; width: 100%; max-width: 1100px; padding: clamp(1.5rem, 4vw, 3.5rem); }
+        .nav-controls { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; z-index: 100; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); padding: 6px 16px; border-radius: 30px; border: 1px solid rgba(21,45,71,0.12); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .nav-btn { width: 28px; height: 28px; border: none; background: rgba(33,80,254,0.08); color: #2150FE; border-radius: 50%; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
+        .nav-btn:hover { background: rgba(33,80,254,0.18); }
+        .slide-dots { display: flex; gap: 6px; align-items: center; }
+        .slide-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(21,45,71,0.2); cursor: pointer; transition: background 0.3s, transform 0.3s; }
+        .slide-dots .dot.active { background: #2150FE; transform: scale(1.2); }
+        .slide-counter { font-size: 0.72rem; color: #6b8099; min-width: 36px; text-align: center; font-family: 'DM Sans', sans-serif; }
+        .reveal { opacity: 0; transform: translateY(20px); }
+
+        /* Gradient mesh */
+        @keyframes float-slow { 0% { transform: translate(0,0) scale(1); } 25% { transform: translate(50px,-40px) scale(1.1); } 50% { transform: translate(-30px,35px) scale(0.92); } 75% { transform: translate(40px,15px) scale(1.06); } 100% { transform: translate(0,0) scale(1); } }
+        @keyframes float-drift { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 33% { transform: translate(-40px,-50px) scale(1.12) rotate(3deg); } 66% { transform: translate(35px,25px) scale(0.9) rotate(-2deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+        .gradient-mesh { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+        .blob { position: absolute; border-radius: 50%; filter: blur(70px); animation: float-slow 12s ease-in-out infinite; }
+        .blob:nth-child(2) { animation: float-drift 16s ease-in-out infinite; }
+        .blob:nth-child(3) { animation: float-slow 20s ease-in-out infinite reverse; }
+
+        /* Vignette - very subtle for light theme */
+        .slide::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.04) 100%); }
+
+        /* Glow for accent numbers */
+        .text-glow { text-shadow: 0 0 16px rgba(33,80,254,0.3); }
+        @keyframes glow-pulse { 0%,100% { text-shadow: 0 0 16px rgba(33,80,254,0.3); } 50% { text-shadow: 0 0 28px rgba(33,80,254,0.6); } }
+        .glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
+
+        /* Bar chart */
+        .bar-fill { height: 100%; border-radius: 4px; width: 0%; transition: width 0.7s ease; }
+
+        /* Deco shapes parallax */
+        .deco-shape { position: absolute; pointer-events: none; z-index: 1; border-radius: 50%; }
+
+        /* Reduce motion */
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; } }
+
+        /* ── Slide-specific ── */
+        /* Title slide dark bg */
+        .slide-1 { background: #0e1a2e !important; }
+        .slide-12 { background: #0e1a2e !important; }
+
+        /* Badge pill */
+        .badge { display: inline-block; background: rgba(33,80,254,0.1); color: #2150FE; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 14px; border-radius: 20px; border: 1px solid rgba(33,80,254,0.2); }
+        .badge-orange { background: rgba(232,93,4,0.1); color: #e85d04; border-color: rgba(232,93,4,0.2); }
+
+        /* Comparison table */
+        .comp-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; }
+        .comp-table th { background: #152D47; color: white; padding: 10px 14px; text-align: left; font-weight: 600; }
+        .comp-table th:first-child { border-radius: 8px 0 0 0; }
+        .comp-table th:last-child { border-radius: 0 8px 0 0; }
+        .comp-table td { padding: 9px 14px; border-bottom: 1px solid rgba(21,45,71,0.07); }
+        .comp-table tr:nth-child(even) td { background: rgba(33,80,254,0.03); }
+        .comp-table tr:last-child td:first-child { border-radius: 0 0 0 8px; }
+        .comp-table tr:last-child td:last-child { border-radius: 0 0 8px 0; }
+        .check { color: #16a34a; font-weight: 700; }
+        .cross { color: #dc2626; font-weight: 700; }
+        .partial { color: #d97706; font-weight: 700; }
+
+        /* Timeline */
+        .timeline-line { position: absolute; left: 20px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, #2150FE, #4f8aff, rgba(33,80,254,0.1)); border-radius: 2px; }
+        .timeline-dot { width: 12px; height: 12px; border-radius: 50%; background: #2150FE; border: 2px solid white; box-shadow: 0 0 0 3px rgba(33,80,254,0.2); position: absolute; left: -5px; top: 3px; }
+        .tl-done { background: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.2); }
+        .tl-inprogress { background: #2150FE; box-shadow: 0 0 0 3px rgba(33,80,254,0.25); }
+        .tl-upcoming { background: #d1d5db; box-shadow: 0 0 0 3px rgba(209,213,219,0.3); }
+
+        /* Workflow arrow */
+        .flow-arrow { font-size: 1.4rem; color: #2150FE; opacity: 0.5; align-self: center; margin: 0 4px; }
+    </style>
+</head>
+<body>
+
+<div class="mouse-spotlight" style="position:fixed;inset:0;z-index:99;pointer-events:none;"></div>
+
+<div class="deck">
+
+    <!-- SLIDE 1: TITLE -->
+    <div class="slide slide-1 active" data-slide="1">
+        <div class="gradient-mesh">
+            <div class="blob" style="width:500px;height:500px;top:-120px;right:-100px;background:#2150FE;opacity:0.18;"></div>
+            <div class="blob" style="width:350px;height:350px;bottom:-100px;left:-80px;background:#4f8aff;opacity:0.14;"></div>
+            <div class="blob" style="width:250px;height:250px;top:35%;left:10%;background:#e85d04;opacity:0.08;"></div>
+        </div>
+        <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1;"></canvas>
+        <div class="content text-center">
+            <div style="font-size:5rem;margin-bottom:1rem;animation:float 3s ease-in-out infinite;" class="reveal">🧠</div>
+            <div class="reveal" style="margin-bottom:0.6rem;">
+                <span style="display:inline-block;background:rgba(79,138,255,0.15);color:#4f8aff;font-size:0.72rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;padding:4px 16px;border-radius:20px;border:1px solid rgba(79,138,255,0.25);">Week 2 Review</span>
+            </div>
+            <h1 class="reveal" style="font-family:'DM Serif Display',serif;font-size:clamp(2.4rem,5.5vw,4.2rem);font-weight:900;background:linear-gradient(135deg,#ffffff 0%,#9ab8ff 60%,#4f8aff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;margin-bottom:0.8rem;">AI Lesson Plan Generator</h1>
+            <p class="reveal" style="font-size:clamp(0.9rem,1.4vw,1.15rem);color:#94aac0;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1.2rem;">FirstCry Intellitots · Early Childhood Education Technology</p>
+            <div class="reveal" style="display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;font-size:0.85rem;color:#7a9ab8;">
+                <span>📅 June 2026</span>
+                <span>👤 Dhori Sushmitha (Frontend) · Bandhela Anirudh (Backend) · Shaik Irfan Basha (Testing & Deployment)</span>
+                <span>🏢 NIAT Internship</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 2: WEEK 1 RECAP -->
+    <div class="slide slide-2" data-slide="2">
+        <div class="gradient-mesh">
+            <div class="blob" style="width:400px;height:400px;top:-80px;right:-60px;background:#2150FE;opacity:0.06;"></div>
+            <div class="blob" style="width:280px;height:280px;bottom:-60px;left:-40px;background:#4f8aff;opacity:0.05;"></div>
+        </div>
+        <div class="deco-shape" data-speed="0.02" style="width:180px;height:180px;top:8%;left:3%;background:rgba(33,80,254,0.04);"></div>
+        <div class="content">
+            <div class="badge reveal" style="margin-bottom:0.7rem;">Week 1 Recap</div>
+            <h2 class="reveal" style="font-family:'DM Serif Display',serif;font-size:clamp(1.8rem,3.5vw,2.6rem);color:#152D47;margin-bottom:0.4rem;line-height:1.2;">Problem Defined. Objectives Set.</h2>
+            <p class="reveal" style="color:#6b8099;font-size:0.95rem;margin-bottom:1.4rem;">A single-slide summary of the foundation laid in Week 1.</p>
+            <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-left:4px solid #2150FE;border-radius:10px;padding:1.2rem;">
+                    <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;color:#2150FE;text-transform:uppercase;margin-bottom:0.5rem;">Problem Statement</div>
+                    <p style="font-size:0.88rem;color:#3a5068;line-height:1.5;margin:0;">Early childhood teachers at FirstCry Intellitots spend <strong>2–4 hours daily</strong> on manual lesson planning with no standardised, AI-assisted tool — causing inconsistent curriculum quality and limiting scalability across centres.</p>
+                </div>
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-left:4px solid #e85d04;border-radius:10px;padding:1.2rem;">
+                    <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;color:#e85d04;text-transform:uppercase;margin-bottom:0.5rem;">4 Core Objectives</div>
+                    <ul style="font-size:0.85rem;color:#3a5068;line-height:1.6;margin:0;padding-left:1rem;">
+                        <li>Automate lesson plan generation via AI</li>
+                        <li>Generate age-appropriate activities & materials</li>
+                        <li>Reduce teacher prep time significantly</li>
+                        <li>Standardise curriculum quality across centres</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="reveal" style="margin-top:1rem;background:rgba(33,80,254,0.05);border:1px solid rgba(33,80,254,0.12);border-radius:8px;padding:0.8rem 1.2rem;display:flex;align-items:center;gap:0.8rem;">
+                <span style="font-size:1.2rem;">✅</span>
+                <span style="font-size:0.85rem;color:#3a5068;"><strong>Week 1 Status:</strong> Problem statement, objectives, wireframes, GitHub structure, and tech stack all finalised and mentor-approved.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 3: LITERATURE SURVEY (PART 1) -->
+    <div class="slide slide-3" data-slide="3">
+        <div class="gradient-mesh">
+            <div class="blob" style="width:380px;height:380px;top:-70px;right:-50px;background:#2150FE;opacity:0.06;"></div>
+            <div class="blob" style="width:260px;height:260px;bottom:-50px;left:-30px;background:#4f8aff;opacity:0.05;"></div>
+        </div>
+        <div class="deco-shape" data-speed="0.03" style="width:140px;height:140px;bottom:12%;right:5%;background:rgba(232,93,4,0.04);"></div>
+        <div class="content">
+            <div class="badge reveal" style="margin-bottom:0.7rem;">Literature Survey — Part 1 of 2</div>
+            <h2 class="reveal" style="font-family:'DM Serif Display',serif;font-size:clamp(1.7rem,3.2vw,2.4rem);color:#152D47;margin-bottom:0.3rem;line-height:1.2;">What Research Tells Us</h2>
+            <p class="reveal" style="color:#6b8099;font-size:0.88rem;margin-bottom:1.2rem;">Synthesised insights from 5+ credible sources across EdTech and AI-assisted instruction research.</p>
+            <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:10px;padding:1.1rem;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+                    <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.6rem;">
+                        <span style="font-size:1.4rem;">⏱️</span>
+                        <div style="font-size:0.72rem;font-weight:700;color:#2150FE;text-transform:uppercase;letter-spacing:0.08em;">UNESCO / McKinsey, 2023</div>
+                    </div>
+                    <p style="font-size:0.85rem;color:#3a5068;margin:0;line-height:1.5;"><strong>Teachers spend 40–50% of work time</strong> on non-teaching tasks like planning. AI tools can cut this by <strong>up to 60%</strong>, freeing teachers to focus on direct instruction.</p>
+                </div>
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:10px;padding:1.1rem;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+                    <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.6rem;">
+                        <span style="font-size:1.4rem;">📚</span>
+                        <div style="font-size:0.72rem;font-weight:700;color:#2150FE;text-transform:uppercase;letter-spacing:0.08em;">Vygotsky ZPD + NAEYC, 2022</div>
+                    </div>
+                    <p style="font-size:0.85rem;color:#3a5068;margin:0;line-height:1.5;">Early childhood education requires <strong>developmentally appropriate practice (DAP)</strong> — activities calibrated to each age group's cognitive stage. Generic templates fail this requirement <strong>73% of the time</strong> (NAEYC field audit).</p>
+                </div>
+            </div>
+            <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;">
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:10px;padding:1.1rem;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+                    <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.6rem;">
+                        <span style="font-size:1.4rem;">🤖</span>
+                        <div style="font-size:0.72rem;font-weight:700;color:#2150FE;text-transform:uppercase;letter-spacing:0.08em;">Stanford HAI, 2024</div>
+                    </div>
+                    <p style="font-size:0.85rem;color:#3a5068;margin:0;line-height:1.5;">LLM-powered content tools achieve <strong>87% teacher satisfaction</strong> when outputs are structured and contextually constrained. Open-ended generation drops this to 52%.</p>
+                </div>
+                <div style="background:rgba(33,80,254,0.04);border:1px solid rgba(33,80,254,0.1);border-radius:10px;padding:1.1rem;">
+                    <div style="font-size:0.72rem;font-weight:700;color:#2150FE;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem;">Key Synthesis</div>
+                    <p style="font-size:0.85rem;color:#152D47;margin:0;line-height:1.5;">The research converges on one gap: <strong>No existing tool combines age-specific DAP constraints with AI generation in an accessible, structured format</strong> for preschool educators.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 4: LITERATURE SURVEY (PART 2) -->
+    <div class="slide slide-4" data-slide="4">
+        <div class="gradient-mesh">
+            <div class="blob" style="width:360px;height:360px;top:-60px;left:-50px;background:#2150FE;opacity:0.06;"></div>
+            <div class="blob" style="width:240px;height:240px;bottom:-40px;right:-30px;background:#e85d04;opacity:0.05;"></div>
+        </div>
+        <div class="content">
+            <div class="badge reveal" style="margin-bottom:0.7rem;">Literature Survey — Part 2 of 2</div>
+            <h2 class="reveal" style="font-family:'DM Serif Display',serif;font-size:clamp(1.7rem,3.2vw,2.4rem);color:#152D47;margin-bottom:0.3rem;line-height:1.2;">Research Gap: The Missing Layer</h2>
+            <p class="reveal" style="color:#6b8099;font-size:0.88rem;margin-bottom:1.2rem;">Additional studies reveal the specific dimensions our system must address.</p>
+            <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:10px;padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size:1.6rem;margin-bottom:0.4rem;">📊</div>
+                    <div style="font-size:0.72rem;font-weight:700;color:#e85d04;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.4rem;">EdTech Market, 2024</div>
+                    <p style="font-size:0.82rem;color:#3a5068;margin:0;line-height:1.5;">Global EdTech market at <strong>$404B by 2025</strong>. AI-powered planning tools represent only <strong>3.2%</strong> of deployments — an untapped segment especially in early education.</p>
+                </div>
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:10px;padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size:1.6rem;margin-bottom:0.4rem;">🧒</div>
+                    <div style="font-size:0.72rem;font-weight:700;color:#e85d04;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.4rem;">Early Childhood Focus</div>
+                    <p style="font-size:0.82rem;color:#3a5068;margin:0;line-height:1.5;">Research (Harvard CEPR, 2023) shows <strong>ages 2–6 are the critical window</strong> for structured learning. Poor planning during this stage shows measurable impact by age 10.</p>
+                </div>
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:10px;padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size:1.6rem;margin-bottom:0.4rem;">⚡</div>
+                    <div style="font-size:0.72rem;font-weight:700;color:#e85d04;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.4rem;">LLM Structured Output</div>
+                    <p style="font-size:0.82rem;color:#3a5068;margin:0;line-height:1.5;">Constrained prompt engineering (few-shot + schema-guided) achieves <strong>3.4× more consistent</strong> structured output vs. open prompts in educational contexts (arXiv 2024).</p>
+                </div>
+            </div>
+            <div class="reveal" style="background:#152D47;border-radius:10px;padding:1rem 1.4rem;display:flex;align-items:center;gap:1rem;">
+                <span style="font-size:1.8rem;">🎯</span>
+                <div>
+                    <div style="font-size:0.72rem;font-weight:700;color:#4f8aff;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem;">Confirmed Research Gap</div>
+                    <p style="font-size:0.85rem;color:#d4e0f0;margin:0;line-height:1.5;">No free, accessible tool exists that accepts a child's <em>age group + theme</em> and returns a complete, DAP-aligned lesson plan including activities, rhymes, worksheets, and materials — in under 10 seconds.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 5: EXISTING SYSTEMS (PART 1) -->
+    <div class="slide slide-5" data-slide="5">
+        <div class="gradient-mesh">
+            <div class="blob" style="width:380px;height:380px;top:-70px;right:-60px;background:#2150FE;opacity:0.06;"></div>
+            <div class="blob" style="width:260px;height:260px;bottom:-50px;left:-40px;background:#4f8aff;opacity:0.05;"></div>
+        </div>
+        <div class="content">
+            <div class="badge reveal" style="margin-bottom:0.7rem;">Existing System Analysis — Tools 1 & 2</div>
+            <h2 class="reveal" style="font-family:'DM Serif Display',serif;font-size:clamp(1.7rem,3.2vw,2.4rem);color:#152D47;margin-bottom:0.3rem;line-height:1.2;">What's Already Out There</h2>
+            <p class="reveal" style="color:#6b8099;font-size:0.88rem;margin-bottom:1.2rem;">Evaluating real tools — and the specific, concrete limitations that drove our system design.</p>
+            <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+                    <div style="background:#f0f4ff;padding:0.9rem 1.2rem;border-bottom:1px solid rgba(33,80,254,0.1);">
+                        <div style="display:flex;align-items:center;gap:0.7rem;">
+                            <span style="font-size:1.4rem;">📝</span>
+                            <div>
+                                <div style="font-weight:700;color:#152D47;font-size:0.95rem;">TeacherMade / Canva EDU</div>
+                                <div style="font-size:0.72rem;color:#6b8099;">Template-based lesson planning tool</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="padding:1rem 1.2rem;">
+                        <div style="font-size:0.75rem;font-weight:700;color:#16a34a;text-transform:uppercase;margin-bottom:0.4rem;">What it does</div>
+                        <p style="font-size:0.82rem;color:#3a5068;margin:0 0 0.8rem;line-height:1.5;">Provides pre-made templates for lesson plans, worksheets, and activities with drag-and-drop editing and visual customisation.</p>
+                        <div style="font-size:0.75rem;font-weight:700;color:#dc2626;text-transform:uppercase;margin-bottom:0.4rem;">Specific Limitations</div>
+                        <ul style="font-size:0.82rem;color:#3a5068;margin:0;padding-left:1rem;line-height:1.7;">
+                            <li>No AI generation — 100% manual content authoring</li>
+                            <li>Templates are generic, <strong>not age-group calibrated</strong></li>
+                            <li>No early childhood / preschool-specific content library</li>
+                            <li>Teacher still spends ~45 min per lesson plan</li>
+                        </ul>
+                    </div>
+                </div>
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+                    <div style="background:#fff4f0;padding:0.9rem 1.2rem;border-bottom:1px solid rgba(232,93,4,0.1);">
+                        <div style="display:flex;align-items:center;gap:0.7rem;">
+                            <span style="font-size:1.4rem;">🤖</span>
+                            <div>
+                                <div style="font-weight:700;color:#152D47;font-size:0.95rem;">ChatGPT (Direct Prompting)</div>
+                                <div style="font-size:0.72rem;color:#6b8099;">General-purpose LLM for lesson plan queries</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="padding:1rem 1.2rem;">
+                        <div style="font-size:0.75rem;font-weight:700;color:#16a34a;text-transform:uppercase;margin-bottom:0.4rem;">What it does</div>
+                        <p style="font-size:0.82rem;color:#3a5068;margin:0 0 0.8rem;line-height:1.5;">Generates lesson plan text via open prompts. Flexible and fast, but requires expert prompt engineering to get useful output.</p>
+                        <div style="font-size:0.75rem;font-weight:700;color:#dc2626;text-transform:uppercase;margin-bottom:0.4rem;">Specific Limitations</div>
+                        <ul style="font-size:0.82rem;color:#3a5068;margin:0;padding-left:1rem;line-height:1.7;">
+                            <li>Output format is <strong>inconsistent across sessions</strong></li>
+                            <li>No DAP-aligned age calibration built-in</li>
+                            <li>Requires prompt expertise — not accessible to all teachers</li>
+                            <li>No integration with school management platforms</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 6: EXISTING SYSTEMS (PART 2) -->
+    <div class="slide slide-6" data-slide="6">
+        <div class="gradient-mesh">
+            <div class="blob" style="width:360px;height:360px;top:-60px;left:-50px;background:#4f8aff;opacity:0.06;"></div>
+            <div class="blob" style="width:240px;height:240px;bottom:-40px;right:-30px;background:#2150FE;opacity:0.05;"></div>
+        </div>
+        <div class="content">
+            <div class="badge reveal" style="margin-bottom:0.7rem;">Existing System Analysis — Tool 3</div>
+            <h2 class="reveal" style="font-family:'DM Serif Display',serif;font-size:clamp(1.7rem,3.2vw,2.4rem);color:#152D47;margin-bottom:0.3rem;line-height:1.2;">Dedicated EdTech: Still Missing the Mark</h2>
+            <p class="reveal" style="color:#6b8099;font-size:0.88rem;margin-bottom:1.2rem;">Even purpose-built education tools fall short on the specific requirements of early childhood AI planning.</p>
+            <div class="reveal" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1.2rem;">
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+                    <div style="background:#f5f0ff;padding:0.9rem 1.2rem;border-bottom:1px solid rgba(120,80,254,0.1);">
+                        <div style="display:flex;align-items:center;gap:0.7rem;">
+                            <span style="font-size:1.4rem;">🏫</span>
+                            <div>
+                                <div style="font-weight:700;color:#152D47;font-size:0.95rem;">Kiddopia / SmartClass360</div>
+                                <div style="font-size:0.72rem;color:#6b8099;">Purpose-built preschool management platforms</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="padding:1rem 1.2rem;">
+                        <div style="font-size:0.75rem;font-weight:700;color:#16a34a;text-transform:uppercase;margin-bottom:0.4rem;">What it does</div>
+                        <p style="font-size:0.82rem;color:#3a5068;margin:0 0 0.8rem;line-height:1.5;">Full school management suite — attendance, parent communication, progress tracking, and a lesson bank with curated content for preschool age groups.</p>
+                        <div style="font-size:0.75rem;font-weight:700;color:#dc2626;text-transform:uppercase;margin-bottom:0.4rem;">Specific Limitations</div>
+                        <ul style="font-size:0.82rem;color:#3a5068;margin:0;padding-left:1rem;line-height:1.7;">
+                            <li>No dynamic AI generation — only <strong>static pre-written content</strong></li>
+                            <li>Lesson bank limited to ~200 fixed themes, no custom input</li>
+                            <li>High cost: ₹12,000–₹35,000/month per centre</li>
+                            <li>No API or export for integration with external LMS</li>
+                        </ul>
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:1rem;">
+                    <div style="background:#152D47;border-radius:12px;padding:1.2rem;flex:1;">
+                        <div style="font-size:0.72rem;font-weight:700;color:#4f8aff;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.7rem;">Common Thread Across All 3 Tools</div>
+                        <ul style="font-size:0.85rem;color:#d4e0f0;margin:0;padding-left:1.1rem;line-height:1.8;">
+                            <li>None generate content dynamically from <em>age + theme</em> input</li>
+                            <li>None produce all 4 outputs in one flow (plan + activities + rhymes + materials)</li>
+                            <li>None are specifically built for Indian preschool context</li>
+                        </ul>
+                    </div>
+                    <div style="background:rgba(232,93,4,0.07);border:1px solid rgba(232,93,4,0.15);border-radius:12px;padding:1.2rem;">
+                        <div style="font-size:0.72rem;font-weight:700;color:#e85d04;text-transform:uppercase;margin-bottom:0.5rem;">Our Design Response</div>
+                        <p style="font-size:0.82rem;color:#3a5068;margin:0;line-height:1.5;">Build a <strong>constrained, structured LLM pipeline</strong> that accepts age + theme, applies DAP rules, and returns a complete, formatted lesson plan in under 8 seconds.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 7: COMPARISON TABLE -->
+    <div class="slide slide-7" data-slide="7">
+        <div class="gradient-mesh">
+            <div class="blob" style="width:380px;height:380px;top:-70px;right:-60px;background:#2150FE;opacity:0.06;"></div>
+            <div class="blob" style="width:260px;height:260px;bottom:-50px;left:-40px;background:#4f8aff;opacity:0.05;"></div>
+        </div>
+        <div class="content">
+            <div class="badge reveal" style="margin-bottom:0.7rem;">Comparison Table</div>
+            <h2 class="reveal" style="font-family:'DM Serif Display',serif;font-size:clamp(1.6rem,3vw,2.2rem);color:#152D47;margin-bottom:0.3rem;line-height:1.2;">Where Existing Tools Fall Short vs. Our System</h2>
+            <p class="reveal" style="color:#6b8099;font-size:0.85rem;margin-bottom:1rem;">7 criteria directly mapped to identified research gaps.</p>
+            <div class="reveal" style="overflow:hidden;border-radius:10px;box-shadow:0 2px 16px rgba(0,0,0,0.07);">
+                <table class="comp-table">
+                    <thead>
+                        <tr>
+                            <th>Criteria</th>
+                            <th>TeacherMade/Canva</th>
+                            <th>ChatGPT</th>
+                            <th>Kiddopia</th>
+                            <th style="background:#2150FE;">✨ Our System</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>AI-Powered Generation</strong></td>
+                            <td><span class="cross">✗ None</span></td>
+                            <td><span class="check">✓ General</span></td>
+                            <td><span class="cross">✗ Static</span></td>
+                            <td style="background:rgba(33,80,254,0.05);"><span class="check">✓ Structured LLM</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Age-Group Calibration (DAP)</strong></td>
+                            <td><span class="cross">✗ No</span></td>
+                            <td><span class="partial">⚠ Manual</span></td>
+                            <td><span class="partial">⚠ Limited</span></td>
+                            <td style="background:rgba(33,80,254,0.05);"><span class="check">✓ Auto (2–6 yrs)</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Theme-Based Custom Input</strong></td>
+                            <td><span class="cross">✗ No</span></td>
+                            <td><span class="check">✓ Open text</span></td>
+                            <td><span class="cross">✗ Fixed list</span></td>
+                            <td style="background:rgba(33,80,254,0.05);"><span class="check">✓ Free input</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Complete Output (Plan+Rhymes+Materials)</strong></td>
+                            <td><span class="cross">✗ Partial</span></td>
+                            <td><span class="partial">⚠ Inconsistent</span></td>
+                            <td><span class="partial">⚠ Partial</span></td>
+                            <td style="background:rgba(33,80,254,0.05);"><span class="check">✓ All 4 outputs</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Generation Time</strong></td>
+                            <td><span class="cross">45+ min</span></td>
+                            <td><span class="partial">⚠ 5–15 min</span></td>
+                            <td><span class="cross">Static only</span></td>
+                            <td style="background:rgba(33,80,254,0.05);"><span class="check">✓ &lt;8 seconds</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Accessible to Non-Tech Teachers</strong></td>
+                            <td><span class="check">✓ Yes</span></td>
+                            <td><span class="cross">✗ Needs prompting</span></td>
+                            <td><span class="check">✓ Yes</span></td>
+                            <td style="background:rgba(33,80,254,0.05);"><span class="check">✓ 2-field form</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cost (per school)</strong></td>
+                            <td><span class="partial">⚠ Freemium</span></td>
+                            <td><span class="partial">⚠ $20/mo</span></td>
+                            <td><span class="cross">✗ ₹12–35k/mo</span></td>
+                            <td style="background:rgba(33,80,254,0.05);"><span class="check">✓ Free / internal</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 8: PROPOSED SYSTEM DESCRIPTION -->
+    <div class="slide slide-8" data-slide="8">
+        <div class="gradient-mesh">
+            <div class="blob" style="width:400px;height:400px;top:-80px;right:-60px;background:#2150FE;opacity:0.07;"></div>
+            <div class="blob" style="width:280px;height:280px;bottom:-60px;left:-40px;background:#4f8aff;opacity:0.06;"></div>
+        </div>
+        <div class="deco-shape" data-speed="0.025" style="width:160px;height:160px;top:10%;left:2%;background:rgba(33,80,254,0.04);"></div>
+        <div class="content">
+            <div class="badge reveal" style="margin-bottom:0.7rem;">Proposed System — Description</div>
+            <h2 class="reveal" style="font-family:'DM Serif Display',serif;font-size:clamp(1.7rem,3.2vw,2.4rem);color:#152D47;margin-bottom:0.3rem;line-height:1.2;">Introducing the AI Lesson Plan Generator</h2>
+            <div class="reveal" style="background:#152D47;border-radius:12px;padding:1.2rem 1.5rem;margin-bottom:1.1rem;border-left:4px solid #4f8aff;">
+                <p style="font-size:0.88rem;color:#d4e0f0;margin:0;line-height:1.7;font-style:italic;">"The proposed system, <strong style="color:white;">AI Lesson Plan Generator</strong>, is an <strong style="color:white;">intelligent educational planning assistant</strong> designed for <strong style="color:white;">early childhood educators at FirstCry Intellitots</strong>. It addresses the key limitation identified in existing solutions — specifically <strong style="color:#4f8aff;">the absence of structured, age-calibrated, AI-generated lesson content</strong> — by implementing a <strong style="color:white;">constrained LLM pipeline with DAP-aligned prompt engineering</strong>. The system allows teachers to <strong style="color:white;">generate a complete lesson plan in under 8 seconds</strong>, reducing preparation burden from 2–4 hours to under 2 minutes. It will be built using <strong style="color:white;">React + Node.js + Gemini API</strong>."</p>
+            </div>
+            <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.9rem;">
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:10px;padding:1rem;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size:1.8rem;margin-bottom:0.4rem;">👩‍🏫</div>
+                    <div style="font-size:0.78rem;font-weight:700;color:#152D47;margin-bottom:0.3rem;">Target Users</div>
+                    <p style="font-size:0.8rem;color:#6b8099;margin:0;">Preschool teachers (ages 2–6) and curriculum coordinators at FirstCry Intellitots centres</p>
+                </div>
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:10px;padding:1rem;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size:1.8rem;margin-bottom:0.4rem;">⚡</div>
+                    <div style="font-size:0.78rem;font-weight:700;color:#152D47;margin-bottom:0.3rem;">Core Feature</div>
+                    <p style="font-size:0.8rem;color:#6b8099;margin:0;">Age + Theme → AI → Complete lesson plan (activities, rhymes, worksheets, materials) in one structured response</p>
+                </div>
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:10px;padding:1rem;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size:1.8rem;margin-bottom:0.4rem;">🎯</div>
+                    <div style="font-size:0.78rem;font-weight:700;color:#152D47;margin-bottom:0.3rem;">Primary Outcome</div>
+                    <p style="font-size:0.8rem;color:#6b8099;margin:0;">Reduce per-lesson planning time from ~135 minutes to under 2 minutes while ensuring DAP alignment</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 9: PROPOSED SYSTEM WORKFLOW -->
+    <div class="slide slide-9" data-slide="9">
+        <div class="gradient-mesh">
+            <div class="blob" style="width:360px;height:360px;top:-60px;left:-50px;background:#2150FE;opacity:0.06;"></div>
+            <div class="blob" style="width:240px;height:240px;bottom:-40px;right:-30px;background:#e85d04;opacity:0.05;"></div>
+        </div>
+        <div class="content">
+            <div class="badge reveal" style="margin-bottom:0.7rem;">Proposed System — High-Level Workflow</div>
+            <h2 class="reveal" style="font-family:'DM Serif Display',serif;font-size:clamp(1.7rem,3.2vw,2.4rem);color:#152D47;margin-bottom:0.3rem;line-height:1.2;">System Architecture & Scope</h2>
+            <p class="reveal" style="color:#6b8099;font-size:0.88rem;margin-bottom:1.1rem;">Every feature maps directly to a gap identified in research or existing system analysis.</p>
+            <!-- Workflow -->
+            <div class="reveal" style="display:flex;align-items:stretch;gap:0.5rem;margin-bottom:1rem;overflow-x:auto;">
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:10px;padding:0.9rem;flex:1;min-width:0;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size:1.6rem;">📥</div>
+                    <div style="font-size:0.75rem;font-weight:700;color:#2150FE;margin:0.3rem 0;">INPUT</div>
+                    <div style="font-size:0.78rem;color:#3a5068;">Teacher selects<br><em>Age Group</em> + enters <em>Theme</em></div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:10px;padding:0.9rem;flex:1;min-width:0;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size:1.6rem;">🔧</div>
+                    <div style="font-size:0.75rem;font-weight:700;color:#2150FE;margin:0.3rem 0;">PROMPT BUILDER</div>
+                    <div style="font-size:0.78rem;color:#3a5068;">Backend constructs<br>DAP-constrained prompt + schema</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:10px;padding:0.9rem;flex:1;min-width:0;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size:1.6rem;">🤖</div>
+                    <div style="font-size:0.75rem;font-weight:700;color:#2150FE;margin:0.3rem 0;">AI GENERATION</div>
+                    <div style="font-size:0.78rem;color:#3a5068;">Gemini API generates<br>structured JSON response</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:10px;padding:0.9rem;flex:1;min-width:0;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="font-size:1.6rem;">📤</div>
+                    <div style="font-size:0.75rem;font-weight:700;color:#2150FE;margin:0.3rem 0;">OUTPUT DASHBOARD</div>
+                    <div style="font-size:0.78rem;color:#3a5068;">React renders plan, activities,<br>rhymes, worksheets, materials</div>
+                </div>
+            </div>
+            <!-- Features mapped to gaps -->
+            <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:0.9rem;">
+                <div style="background:rgba(33,80,254,0.04);border:1px solid rgba(33,80,254,0.12);border-radius:10px;padding:0.9rem 1.1rem;">
+                    <div style="font-size:0.72rem;font-weight:700;color:#2150FE;text-transform:uppercase;margin-bottom:0.5rem;">Features (from Research Gaps)</div>
+                    <ul style="font-size:0.82rem;color:#3a5068;margin:0;padding-left:1rem;line-height:1.7;">
+                        <li>Age-group selector (2–3, 3–4, 4–5, 5–6 yrs) ← DAP gap</li>
+                        <li>Free-text theme input (any topic) ← rigid tools gap</li>
+                        <li>4-output structured plan ← inconsistency gap</li>
+                        <li>Simple 2-field UI ← accessibility gap</li>
+                    </ul>
+                </div>
+                <div style="background:rgba(232,93,4,0.04);border:1px solid rgba(232,93,4,0.12);border-radius:10px;padding:0.9rem 1.1rem;">
+                    <div style="font-size:0.72rem;font-weight:700;color:#e85d04;text-transform:uppercase;margin-bottom:0.5rem;">Scope Boundaries</div>
+                    <ul style="font-size:0.82rem;color:#3a5068;margin:0;padding-left:1rem;line-height:1.7;">
+                        <li>Scope: Indian preschool context (English + Hindi support)</li>
+                        <li>Out-of-scope: Student progress tracking, parent portal</li>
+                        <li>Out-of-scope: Multi-lesson curriculum builder (Phase 2)</li>
+                        <li>Platform: Web app (mobile-responsive)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 10: BENEFITS -->
+    <div class="slide slide-10" data-slide="10">
+        <div class="gradient-mesh">
+            <div class="blob" style="width:420px;height:420px;top:-90px;right:-70px;background:#2150FE;opacity:0.07;"></div>
+            <div class="blob" style="width:300px;height:300px;bottom:-70px;left:-50px;background:#4f8aff;opacity:0.06;"></div>
+        </div>
+        <div class="content">
+            <div class="badge reveal" style="margin-bottom:0.7rem;">Benefits</div>
+            <h2 class="reveal" style="font-family:'DM Serif Display',serif;font-size:clamp(1.7rem,3.2vw,2.4rem);color:#152D47;margin-bottom:0.3rem;line-height:1.2;">Concrete, Measurable Improvements</h2>
+            <p class="reveal" style="color:#6b8099;font-size:0.88rem;margin-bottom:1.1rem;">Every benefit is traceable to a specific problem identified in research and existing system analysis.</p>
+            <div class="reveal" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;">
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:12px;padding:1.1rem;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+                    <div style="font-size:2.2rem;font-weight:900;color:#2150FE;" class="glow-pulse" data-count="98">0%</div>
+                    <div style="font-size:0.75rem;font-weight:700;color:#152D47;text-transform:uppercase;letter-spacing:0.06em;margin:0.3rem 0;">Reduction in manual prep</div>
+                    <p style="font-size:0.78rem;color:#6b8099;margin:0;">From 2–4 hrs/lesson to under 2 minutes — a ~98% time saving per lesson plan generated</p>
+                </div>
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:12px;padding:1.1rem;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+                    <div style="font-size:2.2rem;font-weight:900;color:#2150FE;" class="glow-pulse">100%</div>
+                    <div style="font-size:0.75rem;font-weight:700;color:#152D47;text-transform:uppercase;letter-spacing:0.06em;margin:0.3rem 0;">DAP-aligned every time</div>
+                    <p style="font-size:0.78rem;color:#6b8099;margin:0;">Every generated plan enforces developmentally appropriate constraints — vs 73% failure rate in generic tools</p>
+                </div>
+                <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:12px;padding:1.1rem;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+                    <div style="font-size:2.2rem;font-weight:900;color:#2150FE;" class="glow-pulse">&lt;8 sec</div>
+                    <div style="font-size:0.75rem;font-weight:700;color:#152D47;text-transform:uppercase;letter-spacing:0.06em;margin:0.3rem 0;">End-to-end generation</div>
+                    <p style="font-size:0.78rem;color:#6b8099;margin:0;">Target API response time under 8 seconds including plan, activities, rhymes, and materials in a single call</p>
+                </div>
+            </div>
+            <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:0.9rem;">
+                <div style="background:rgba(22,163,74,0.06);border:1px solid rgba(22,163,74,0.15);border-radius:10px;padding:0.9rem 1.1rem;">
+                    <div style="font-size:0.72rem;font-weight:700;color:#16a34a;text-transform:uppercase;margin-bottom:0.4rem;">Teacher Benefits</div>
+                    <ul style="font-size:0.82rem;color:#3a5068;margin:0;padding-left:1rem;line-height:1.7;">
+                        <li>More time for direct student engagement</li>
+                        <li>Consistent quality regardless of teacher experience</li>
+                        <li>Printable, structured format — zero reformatting needed</li>
+                    </ul>
+                </div>
+                <div style="background:rgba(33,80,254,0.05);border:1px solid rgba(33,80,254,0.12);border-radius:10px;padding:0.9rem 1.1rem;">
+                    <div style="font-size:0.72rem;font-weight:700;color:#2150FE;text-transform:uppercase;margin-bottom:0.4rem;">Operational Benefits</div>
+                    <ul style="font-size:0.82rem;color:#3a5068;margin:0;padding-left:1rem;line-height:1.7;">
+                        <li>Scales across all centres with zero additional effort</li>
+                        <li>Reduces dependence on senior staff for curriculum design</li>
+                        <li>Zero cost vs ₹12–35k/month alternatives</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 11: TECHNOLOGY STACK -->
+    <div class="slide slide-11" data-slide="11">
+        <div class="gradient-mesh">
+            <div class="blob" style="width:360px;height:360px;top:-60px;right:-50px;background:#2150FE;opacity:0.06;"></div>
+            <div class="blob" style="width:260px;height:260px;bottom:-50px;left:-40px;background:#4f8aff;opacity:0.05;"></div>
+        </div>
+        <div class="content">
+            <div class="badge reveal" style="margin-bottom:0.7rem;">Technology Stack</div>
+            <h2 class="reveal" style="font-family:'DM Serif Display',serif;font-size:clamp(1.7rem,3.2vw,2.4rem);color:#152D47;margin-bottom:0.3rem;line-height:1.2;">Stack Chosen for Purpose, Not Popularity</h2>
+            <p class="reveal" style="color:#6b8099;font-size:0.88rem;margin-bottom:1.1rem;">Each technology is justified by a specific project requirement, not trend.</p>
+            <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:0.9rem;">
+                <div>
+                    <div style="font-size:0.72rem;font-weight:700;color:#2150FE;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.6rem;padding-left:0.3rem;">Frontend</div>
+                    <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                        <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:8px;padding:0.7rem 0.9rem;display:flex;gap:0.8rem;align-items:flex-start;box-shadow:0 1px 6px rgba(0,0,0,0.04);">
+                            <span style="font-size:1.2rem;flex-shrink:0;">⚛️</span>
+                            <div><strong style="font-size:0.85rem;color:#152D47;">React.js</strong> <span style="font-size:0.78rem;color:#6b8099;">— Component-based UI enables reusable lesson plan cards and dynamic state management for real-time AI streaming output</span></div>
+                        </div>
+                        <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:8px;padding:0.7rem 0.9rem;display:flex;gap:0.8rem;align-items:flex-start;box-shadow:0 1px 6px rgba(0,0,0,0.04);">
+                            <span style="font-size:1.2rem;flex-shrink:0;">🎨</span>
+                            <div><strong style="font-size:0.85rem;color:#152D47;">Tailwind CSS</strong> <span style="font-size:0.78rem;color:#6b8099;">— Utility-first styling enables rapid, consistent UI development without custom CSS bloat for a 3-person team</span></div>
+                        </div>
+                        <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:8px;padding:0.7rem 0.9rem;display:flex;gap:0.8rem;align-items:flex-start;box-shadow:0 1px 6px rgba(0,0,0,0.04);">
+                            <span style="font-size:1.2rem;flex-shrink:0;">📦</span>
+                            <div><strong style="font-size:0.85rem;color:#152D47;">Axios</strong> <span style="font-size:0.78rem;color:#6b8099;">— Simplifies API call handling with built-in request/response interceptors for consistent error feedback to teachers</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size:0.72rem;font-weight:700;color:#e85d04;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.6rem;padding-left:0.3rem;">Backend & AI</div>
+                    <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                        <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:8px;padding:0.7rem 0.9rem;display:flex;gap:0.8rem;align-items:flex-start;box-shadow:0 1px 6px rgba(0,0,0,0.04);">
+                            <span style="font-size:1.2rem;flex-shrink:0;">🟢</span>
+                            <div><strong style="font-size:0.85rem;color:#152D47;">Node.js + Express</strong> <span style="font-size:0.78rem;color:#6b8099;">— Non-blocking I/O handles concurrent AI API calls efficiently; Express routes map cleanly to generation endpoints</span></div>
+                        </div>
+                        <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:8px;padding:0.7rem 0.9rem;display:flex;gap:0.8rem;align-items:flex-start;box-shadow:0 1px 6px rgba(0,0,0,0.04);">
+                            <span style="font-size:1.2rem;flex-shrink:0;">🔮</span>
+                            <div><strong style="font-size:0.85rem;color:#152D47;">Google Gemini API</strong> <span style="font-size:0.78rem;color:#6b8099;">— Free tier accommodates internship budget; JSON mode guarantees structured output required for parsing lesson sections</span></div>
+                        </div>
+                        <div style="background:white;border:1px solid rgba(21,45,71,0.09);border-radius:8px;padding:0.7rem 0.9rem;display:flex;gap:0.8rem;align-items:flex-start;box-shadow:0 1px 6px rgba(0,0,0,0.04);">
+                            <span style="font-size:1.2rem;flex-shrink:0;">⚡</span>
+                            <div><strong style="font-size:0.85rem;color:#152D47;">Supabase (PostgreSQL 16)</strong> <span style="font-size:0.78rem;color:#6b8099;">— Relational PostgreSQL 16 database and integrated Auth services, fully managed and scaled automatically</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="reveal" style="margin-top:0.8rem;background:rgba(33,80,254,0.04);border:1px solid rgba(33,80,254,0.1);border-radius:8px;padding:0.7rem 1.1rem;display:flex;gap:1.5rem;font-size:0.82rem;color:#3a5068;">
+                <span>🛠️ <strong>Dev Tools:</strong> VS Code, GitHub, Postman</span>
+                <span>🚀 <strong>Deployment:</strong> Vercel (frontend) + Railway (backend)</span>
+                <span>🧪 <strong>Testing:</strong> Vitest (Unit/Integration) + Playwright (E2E/a11y)</span>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- SLIDE 12: Q&A / CLOSING -->
+    <div class="slide slide-12" data-slide="12">
+        <div class="gradient-mesh">
+            <div class="blob" style="width:500px;height:500px;top:-120px;right:-100px;background:#2150FE;opacity:0.18;"></div>
+            <div class="blob" style="width:350px;height:350px;bottom:-100px;left:-80px;background:#4f8aff;opacity:0.14;"></div>
+            <div class="blob" style="width:250px;height:250px;top:40%;left:5%;background:#e85d04;opacity:0.08;"></div>
+        </div>
+        <canvas class="particle-canvas-closing" style="position:absolute;inset:0;z-index:1;"></canvas>
+        <div class="content text-center" style="max-width:800px;">
+            <div style="font-size:4rem;margin-bottom:0.8rem;animation:float 3s ease-in-out infinite;" class="reveal">🙋</div>
+            <h1 class="reveal" style="font-family:'DM Serif Display',serif;font-size:clamp(2.4rem,5.5vw,4rem);font-weight:900;background:linear-gradient(135deg,#ffffff 0%,#9ab8ff 60%,#4f8aff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;margin-bottom:0.6rem;">Questions?</h1>
+            <p class="reveal" style="color:#94aac0;font-size:1rem;letter-spacing:0.06em;margin-bottom:1.6rem;">Open for Discussion</p>
+            <div class="reveal" style="display:inline-block;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:1.2rem 2rem;margin-bottom:1.4rem;">
+                <div style="font-size:1rem;font-weight:700;color:white;margin-bottom:0.3rem;">AI Lesson Plan Generator — Week 2 Review</div>
+                <div style="font-size:0.85rem;color:#94aac0;">Dhori Sushmitha (Frontend) · Bandhela Anirudh (Backend) · Shaik Irfan Basha (Testing & Deployment) · FirstCry Intellitots · June 2026</div>
+            </div>
+            <div class="reveal" style="display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;font-size:0.82rem;color:#7a9ab8;">
+                <span>📂 GitHub: /ai-lesson-plan-generator</span>
+                <span>🏢 NIAT Internship — NIAT, Bhongir</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- NAVIGATION -->
+<div class="nav-controls">
+    <button class="nav-btn" onclick="changeSlide(-1)">&#8249;</button>
+    <div class="slide-dots" id="dots"></div>
+    <button class="nav-btn" onclick="changeSlide(1)">&#8250;</button>
+    <span class="slide-counter" id="counter">1 / 12</span>
+</div>
+
+<script>
+    let current = 1;
+    const total = document.querySelectorAll('.slide').length;
+    const dotsContainer = document.getElementById('dots');
+    const counter = document.getElementById('counter');
+    for (let i = 1; i <= total; i++) { const dot = document.createElement('div'); dot.className = 'dot' + (i === 1 ? ' active' : ''); dot.onclick = () => goToSlide(i); dotsContainer.appendChild(dot); }
+
+    function goToSlide(n) {
+        const prev = document.querySelector('.slide.active');
+        const next = document.querySelector('.slide[data-slide="' + n + '"]');
+        if (prev) prev.classList.remove('active');
+        if (next) { next.classList.add('active'); animateSlide(next); }
+        current = n; updateNav();
+    }
+    function changeSlide(dir) { let next = current + dir; if (next < 1) next = total; if (next > total) next = 1; goToSlide(next); }
+    function updateNav() { document.querySelectorAll('.dot').forEach((d, i) => { d.classList.toggle('active', i + 1 === current); }); counter.textContent = current + ' / ' + total; }
+
+    document.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); } if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); } });
+    let touchStartX = 0;
+    document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+    document.addEventListener('touchend', (e) => { const diff = touchStartX - e.changedTouches[0].clientX; if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1); });
+
+    function animateSlide(slide) {
+        slide.querySelectorAll('.reveal').forEach((el, i) => {
+            el.style.transition = 'none'; el.style.opacity = '0'; el.style.transform = 'translateY(20px)';
+            el.offsetHeight;
+            const delay = i * 0.08;
+            el.style.transition = 'opacity 0.35s ease ' + delay + 's, transform 0.35s ease ' + delay + 's';
+            el.style.opacity = '1'; el.style.transform = 'translateY(0px)';
+        });
+        animateSlideEffects(slide);
+    }
+
+    function animateSlideEffects(slide) {
+        slide.querySelectorAll('[data-count]:not(.counted)').forEach(el => {
+            el.classList.add('counted');
+            const target = parseInt(el.dataset.count), suffix = el.dataset.suffix || '', prefix = el.dataset.prefix || '';
+            let cur = 0; const step = target / 40;
+            const timer = setInterval(() => { cur += step; if (cur >= target) { cur = target; clearInterval(timer); } el.textContent = prefix + Math.round(cur).toLocaleString() + suffix; }, 30);
+        });
+        slide.querySelectorAll('.bar-fill:not(.fill-init)').forEach((bar, i) => {
+            bar.classList.add('fill-init');
+            bar.style.width = '0%'; bar.style.transition = 'width 0.6s ease ' + (i * 0.1) + 's'; bar.offsetHeight; bar.style.width = bar.dataset.width + '%';
+        });
+    }
+
+    // Mouse spotlight
+    document.addEventListener('mousemove', (e) => {
+        const spotlight = document.querySelector('.mouse-spotlight');
+        if (spotlight) spotlight.style.background = 'radial-gradient(600px circle at ' + e.clientX + 'px ' + e.clientY + 'px, rgba(33,80,254,0.05), transparent 40%)';
+    });
+
+    // Parallax
+    (function() {
+        let mx = window.innerWidth / 2, my = window.innerHeight / 2;
+        const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+        document.addEventListener('mousemove', (e) => { mx = e.clientX; my = e.clientY; });
+        (function tick() {
+            const ox = (mx - cx) / cx, oy = (my - cy) / cy;
+            document.querySelectorAll('.deco-shape').forEach(shape => {
+                const speed = parseFloat(shape.dataset.speed) || 0.03;
+                shape.style.transform = 'translate(' + (ox * speed * 100) + 'px, ' + (oy * speed * 100) + 'px)';
+            });
+            requestAnimationFrame(tick);
+        })();
+    })();
+
+    // Particles
+    window.initParticles = function(canvas, count, interactive) {
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+        let mx = -1000, my = -1000;
+        const particles = Array.from({ length: count }, () => ({
+            x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.35,
+            size: Math.random() * 2 + 0.8, alpha: Math.random() * 0.3 + 0.1
+        }));
+        if (interactive) { canvas.addEventListener('mousemove', (e) => { const r = canvas.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top; }); canvas.addEventListener('mouseleave', () => { mx = -1000; my = -1000; }); }
+        (function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                if (interactive) { const dx = p.x - mx, dy = p.y - my, d = Math.sqrt(dx*dx+dy*dy); if (d < 120) { const f = (120-d)/120*2; p.vx += (dx/d)*f*0.1; p.vy += (dy/d)*f*0.1; } }
+                p.vx *= 0.98; p.vy *= 0.98; p.x += p.vx; p.y += p.vy;
+                if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(79,138,255,' + p.alpha + ')'; ctx.fill();
+            });
+            requestAnimationFrame(animate);
+        })();
+    };
+    document.querySelectorAll('.particle-canvas').forEach(c => window.initParticles(c, 55, true));
+    document.querySelectorAll('.particle-canvas-closing').forEach(c => window.initParticles(c, 55, true));
+
+    try { animateSlide(document.querySelector('.slide.active')); } catch(e) { console.warn(e); }
+</script>
+
+</body>
+</html>

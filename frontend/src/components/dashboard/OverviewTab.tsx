@@ -1,20 +1,23 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { UseLessonsResult } from '../../hooks/useLessons';
+import { UseAnalyticsResult } from '../../hooks/useAnalytics';
 import { MetricCard } from '../ui/MetricCard';
 import { BarChart } from '../ui/BarChart';
 import { InsightCard } from '../ui/InsightCard';
 import { QuickGenerateCard } from '../ui/QuickGenerateCard';
 import { SectionCard } from '../ui/SectionCard';
 import { StatusBadge } from '../ui/StatusBadge';
+import { QuickControls } from './QuickControls';
 import { Link } from 'react-router-dom';
 import { Sparkles, TrendingDown, BookOpen } from 'lucide-react';
 
 interface OverviewTabProps {
   lessons: UseLessonsResult;
+  analytics: UseAnalyticsResult;
 }
 
-export function OverviewTab({ lessons }: OverviewTabProps) {
+export function OverviewTab({ lessons, analytics }: OverviewTabProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -24,17 +27,26 @@ export function OverviewTab({ lessons }: OverviewTabProps) {
     return lessons.items.filter((item) => new Date(item.createdAt) >= oneWeekAgo).length;
   };
 
-  const weeklyData = [
-    { label: 'Sun', value: 2 },
-    { label: 'Mon', value: 5 },
-    { label: 'Tue', value: 4 },
-    { label: 'Wed', value: 8 },
-    { label: 'Thu', value: 6 },
-    { label: 'Fri', value: 7 },
-    { label: 'Sat', value: 3 },
-  ];
+  // Use real data from analytics when available, fall back to static data
+  const weeklyData = analytics.metrics?.trends
+    ? analytics.metrics.trends.map((t) => ({ label: t.day, value: t.hours }))
+    : [
+        { label: 'Sun', value: 2 },
+        { label: 'Mon', value: 5 },
+        { label: 'Tue', value: 4 },
+        { label: 'Wed', value: 8 },
+        { label: 'Thu', value: 6 },
+        { label: 'Fri', value: 7 },
+        { label: 'Sat', value: 3 },
+      ];
 
-  // Removed mock status and title overrides to show real database records
+  const totalHours = analytics.metrics?.summary?.totalHours ?? 12;
+  const percentageChange = analytics.metrics?.summary?.percentageChange ?? 10;
+  const completionRate = analytics.metrics?.kpis?.completionRate ?? 0;
+  const engagementRate = analytics.metrics?.kpis?.engagementRate ?? 92;
+
+  // Use real insights from analytics if available
+  const insightItems = analytics.insights.length > 0 ? analytics.insights : null; // null means show default static insights
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -56,7 +68,7 @@ export function OverviewTab({ lessons }: OverviewTabProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <MetricCard
               title="Total Lessons"
-              value={lessons.total}
+              value={analytics.metrics?.kpis?.totalLessonsCount ?? lessons.total}
               trend="+12%"
               subtitle="vs last month"
               variant="yellow"
@@ -70,7 +82,7 @@ export function OverviewTab({ lessons }: OverviewTabProps) {
             />
             <MetricCard
               title="AI Accuracy"
-              value="92%"
+              value={`${engagementRate}%`}
               trend="+1%"
               subtitle="vs last week"
               variant="blue"
@@ -90,12 +102,17 @@ export function OverviewTab({ lessons }: OverviewTabProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
               {/* Summary Stats Box */}
               <div className="border-[3px] border-black dark:border-white rounded-[16px] p-4 bg-[#fffdf5] dark:bg-zinc-900 shadow-[3px_3px_0px_#000] dark:shadow-[3px_3px_0px_#fff] space-y-2">
-                <div className="text-4xl font-black font-heading text-text-primary">12 h</div>
+                <div className="text-4xl font-black font-heading text-text-primary">
+                  {totalHours} h
+                </div>
                 <div className="text-xs font-black uppercase tracking-wider text-text-secondary">
                   logged this week
                 </div>
-                <span className="inline-flex items-center gap-1 text-[11px] font-black rounded-full px-2 py-0.5 border-[2px] border-black bg-[#E7F6EC] text-[#2B8A4D]">
-                  +10% vs last week
+                <span
+                  className={`inline-flex items-center gap-1 text-[11px] font-black rounded-full px-2 py-0.5 border-[2px] border-black ${percentageChange >= 0 ? 'bg-[#E7F6EC] text-[#2B8A4D]' : 'bg-red-50 text-red-600'}`}
+                >
+                  {percentageChange >= 0 ? '+' : ''}
+                  {percentageChange}% vs last week
                 </span>
               </div>
               <div className="md:col-span-2">
@@ -194,32 +211,73 @@ export function OverviewTab({ lessons }: OverviewTabProps) {
           {/* Quick Generate CTA */}
           <QuickGenerateCard />
 
+          {/* Quick Controls - Task & Focus Tracker */}
+          <QuickControls analytics={analytics} />
+
           {/* AI Insights */}
           <SectionCard title="AI Insights" subtitle="Real-time suggestions">
             <div className="space-y-3">
-              <InsightCard
-                title="Classroom Engagement"
-                description="Increased engagement observed during hands-on activities."
-                icon={Sparkles}
-                iconBg="bg-[#f4f0ff]"
-                iconColor="text-[#8D6BE8]"
-              />
-              <InsightCard
-                title="Learning Gaps & Support"
-                description="Identify students needing extra support in letter recognition."
-                icon={TrendingDown}
-                iconBg="bg-[#fff9e0]"
-                iconColor="text-[#E6BD19]"
-                linkText="View Details"
-              />
-              <InsightCard
-                title="Resource Suggestions"
-                description="New printable resources recommended for next week's theme."
-                icon={BookOpen}
-                iconBg="bg-[#e7f6ec]"
-                iconColor="text-[#3BAA63]"
-                linkText="View Details"
-              />
+              {insightItems ? (
+                insightItems.slice(0, 3).map((insight) => {
+                  const iconMap: Record<
+                    string,
+                    { icon: typeof Sparkles; iconBg: string; iconColor: string }
+                  > = {
+                    classroom_engagement: {
+                      icon: Sparkles,
+                      iconBg: 'bg-[#f4f0ff]',
+                      iconColor: 'text-[#8D6BE8]',
+                    },
+                    learning_gaps: {
+                      icon: TrendingDown,
+                      iconBg: 'bg-[#fff9e0]',
+                      iconColor: 'text-[#E6BD19]',
+                    },
+                    resource_suggestions: {
+                      icon: BookOpen,
+                      iconBg: 'bg-[#e7f6ec]',
+                      iconColor: 'text-[#3BAA63]',
+                    },
+                  };
+                  const visual = iconMap[insight.type] || iconMap.classroom_engagement;
+                  return (
+                    <InsightCard
+                      key={insight.id}
+                      title={insight.title}
+                      description={insight.description}
+                      icon={visual.icon}
+                      iconBg={visual.iconBg}
+                      iconColor={visual.iconColor}
+                    />
+                  );
+                })
+              ) : (
+                <>
+                  <InsightCard
+                    title="Classroom Engagement"
+                    description="Increased engagement observed during hands-on activities."
+                    icon={Sparkles}
+                    iconBg="bg-[#f4f0ff]"
+                    iconColor="text-[#8D6BE8]"
+                  />
+                  <InsightCard
+                    title="Learning Gaps & Support"
+                    description="Identify students needing extra support in letter recognition."
+                    icon={TrendingDown}
+                    iconBg="bg-[#fff9e0]"
+                    iconColor="text-[#E6BD19]"
+                    linkText="View Details"
+                  />
+                  <InsightCard
+                    title="Resource Suggestions"
+                    description="New printable resources recommended for next week's theme."
+                    icon={BookOpen}
+                    iconBg="bg-[#e7f6ec]"
+                    iconColor="text-[#3BAA63]"
+                    linkText="View Details"
+                  />
+                </>
+              )}
             </div>
           </SectionCard>
 
@@ -233,6 +291,10 @@ export function OverviewTab({ lessons }: OverviewTabProps) {
               <div className="flex justify-between py-2 border-b-[2px] border-black dark:border-white">
                 <span className="text-text-secondary">Generation Mode</span>
                 <span className="font-black text-text-primary">Gemini (primary)</span>
+              </div>
+              <div className="flex justify-between py-2 border-b-[2px] border-black dark:border-white">
+                <span className="text-text-secondary">Task Completion</span>
+                <span className="font-black text-text-primary">{completionRate}%</span>
               </div>
               <div className="flex justify-between py-2">
                 <span className="text-text-secondary">API Version</span>

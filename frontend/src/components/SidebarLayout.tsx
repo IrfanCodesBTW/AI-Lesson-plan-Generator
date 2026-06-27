@@ -15,6 +15,7 @@ import {
   Clock,
   Library,
   HelpCircle,
+  Building,
 } from 'lucide-react';
 
 interface SidebarLayoutProps {
@@ -37,12 +38,18 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
     { id: 'library', label: 'My Lessons', icon: BookOpen, path: '/dashboard?tab=library' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/dashboard?tab=analytics' },
     { id: 'templates', label: 'Templates', icon: FolderHeart, path: '/dashboard?tab=templates' },
+    {
+      id: 'operations',
+      label: 'Centre Operations',
+      icon: Building,
+      path: '/dashboard?tab=operations',
+    },
   ];
 
   const toolNavItems = [
-    { id: 'resources', label: 'Time Tracker', icon: Clock, path: '/dashboard?tab=resources' },
+    { id: 'tracker', label: 'Time Tracker', icon: Clock, path: '/dashboard?tab=tracker' },
     {
-      id: 'resources2',
+      id: 'resources',
       label: 'Resource Library',
       icon: Library,
       path: '/dashboard?tab=resources',
