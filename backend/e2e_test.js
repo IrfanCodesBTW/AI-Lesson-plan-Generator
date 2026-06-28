@@ -1,6 +1,6 @@
 const http = require('http');
 
-const baseURL = 'http://localhost:4000/api';
+// const baseURL = 'http://localhost:4000/api';
 let token = '';
 
 function request(method, path, body = null, headers = {}) {

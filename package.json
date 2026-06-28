@@ -13,8 +13,8 @@
     "build": "npm --workspace backend run build && npm --workspace frontend run build",
     "lint": "npm --workspace backend run lint && npm --workspace frontend run lint",
     "test": "npm --workspace backend run test && npm --workspace frontend run test",
-    "format": "prettier --write \"backend/src/**/*.{ts,tsx,js,json,md}\" \"frontend/src/**/*.{ts,tsx,js,json,css,md}\" \"*.{md,json}\"",
-    "format:check": "prettier --check \"backend/src/**/*.{ts,tsx,js,json,md}\" \"frontend/src/**/*.{ts,tsx,js,json,css,md}\" \"*.{md,json}\"",
+    "format": "prettier --write \"backend/src/**/*.{js,json,md}\" \"frontend/src/**/*.{js,jsx,json,css,md}\" \"*.{md,json}\"",
+    "format:check": "prettier --check \"backend/src/**/*.{js,json,md}\" \"frontend/src/**/*.{js,jsx,json,css,md}\" \"*.{md,json}\"",
     "prepare": "husky || true"
   },
   "devDependencies": {
@@ -23,7 +23,7 @@
     "prettier": "^3.3.3"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
+    "*.{js,jsx}": [
       "prettier --write"
     ],
     "*.{json,md,css}": [

@@ -1,2 +1,2 @@
 release: npx node-pg-migrate -m migrations up
-web: node dist/server.js
+web: node src/server.js
